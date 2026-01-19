@@ -119,6 +119,43 @@ The config file supports YAML streams (multiple documents separated by `---`). E
 | `title` | string | No | Link title for organization |
 | `tags` | string[] | No | Tags for categorization |
 
+### Special Path Patterns
+
+Short.io supports special path patterns for advanced routing:
+
+| Pattern | Description | Example |
+|---------|-------------|---------|
+| `""` (empty) | Root domain redirect | `short.io` → `https://example.com` |
+| `*` | Catch-all for 404s | `short.io/anything` → `https://example.com/not-found` |
+| `path/*` | Path prefix with capture | `short.io/docs/intro` → `https://example.com/docs/intro` |
+
+In path prefix patterns, use `$1` in the destination URL to insert the captured path segment.
+
+```yaml
+domain: "short.example.com"
+
+links:
+  # Root redirect - visitors to short.example.com go to main site
+  "":
+    url: "https://www.example.com"
+    title: "Root redirect"
+
+  # 404 catch-all - any unmatched path redirects to help page
+  "*":
+    url: "https://www.example.com/help"
+    title: "404 fallback"
+
+  # Path prefix - short.example.com/docs/anything → docs.example.com/anything
+  "docs/*":
+    url: "https://docs.example.com/$1"
+    title: "Docs passthrough"
+
+  # Another example - short.example.com/gh/repo/path → github.com/myorg/repo/path
+  "gh/*":
+    url: "https://github.com/myorg/$1"
+    title: "GitHub shortcut"
+```
+
 ## Examples
 
 ### Dry-run mode
@@ -161,11 +198,13 @@ Access the sync results in subsequent steps:
 
 ## Sync Behavior
 
-The action performs a **full sync** between your YAML config and Short.io:
+The action performs a **declarative sync** between your YAML config and Short.io:
 
 1. **Create** - Links in YAML but not in Short.io are created
 2. **Update** - Links where URL, title, or tags differ are updated
-3. **Delete** - Links in Short.io but not in YAML are deleted
+3. **Delete** - Links removed from YAML are deleted (only if previously managed by this action)
+
+Links created by the action are tagged with `github-action-managed`. This ensures that manually created links in Short.io are never deleted—only links that were originally created through this action will be removed when deleted from the YAML config.
 
 Links are identified by the combination of `domain` and `slug`. Changing a slug will result in the old link being deleted and a new one created.
 
