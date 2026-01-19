@@ -1,15 +1,20 @@
 export interface YamlLinkValue {
   url: string;
+  domain?: string;
+  title?: string;
+  tags?: string[];
+}
+
+export interface YamlLink {
+  slug: string;
+  url: string;
   domain: string;
   title?: string;
   tags?: string[];
 }
 
-export interface YamlLink extends YamlLinkValue {
-  slug: string;
-}
-
 export interface YamlConfig {
+  domain?: string;
   links: Record<string, YamlLinkValue>;
 }
 
@@ -65,6 +70,9 @@ export function getLinkKey(domain: string, slug: string): LinkKey {
 export function getLinksArray(config: YamlConfig): YamlLink[] {
   return Object.entries(config.links).map(([slug, value]) => ({
     slug,
-    ...value,
+    url: value.url,
+    domain: value.domain ?? config.domain!,
+    title: value.title,
+    tags: value.tags,
   }));
 }

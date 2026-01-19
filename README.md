@@ -21,10 +21,11 @@ A GitHub Action that syncs short links from a `shortio.yaml` file in your reposi
 
 ```yaml
 # shortio.yaml
+domain: "short.example.com"  # Default domain for all links
+
 links:
   docs:
     url: "https://documentation.example.com/v2"
-    domain: "short.example.com"
     title: "Documentation"
     tags:
       - docs
@@ -32,12 +33,11 @@ links:
 
   api:
     url: "https://api.example.com"
-    domain: "short.example.com"
     title: "API Reference"
 
   blog:
     url: "https://blog.example.com"
-    domain: "links.company.io"
+    domain: "links.company.io"  # Override default domain
     title: "Company Blog"
 ```
 
@@ -84,15 +84,24 @@ jobs:
 
 ### YAML Schema
 
-The `links` field is a map where each key is the slug (short path) and the value contains:
+**Top-level fields:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `domain` | string | No | Default domain for all links |
+| `links` | map | Yes | Map of slug → link configuration |
+
+**Link fields** (within `links` map):
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | *(key)* | string | Yes | The slug/short path (e.g., `docs` → short.example.com/docs) |
 | `url` | string | Yes | Destination URL |
-| `domain` | string | Yes | Short.io domain to use |
+| `domain` | string | No* | Short.io domain (required if no top-level `domain`) |
 | `title` | string | No | Link title for organization |
 | `tags` | string[] | No | Tags for categorization |
+
+*Each link must have a domain, either from the top-level `domain` or its own `domain` field.
 
 ## Examples
 

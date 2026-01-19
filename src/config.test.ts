@@ -86,14 +86,69 @@ links:
     expect(() => parseConfig(TEST_FILE)).toThrow('Link "my-link" must have a non-empty "url" string');
   });
 
-  it('throws ConfigError for missing domain', () => {
+  it('throws ConfigError for missing domain when no top-level domain', () => {
     writeTestConfig(`
 links:
   my-link:
     url: https://example.com
 `);
     expect(() => parseConfig(TEST_FILE)).toThrow(ConfigError);
-    expect(() => parseConfig(TEST_FILE)).toThrow('Link "my-link" must have a non-empty "domain" string');
+    expect(() => parseConfig(TEST_FILE)).toThrow('Link "my-link" must have a "domain" (or set top-level "domain")');
+  });
+
+  it('parses config with top-level domain', () => {
+    writeTestConfig(`
+domain: short.io
+links:
+  my-link:
+    url: https://example.com
+  another-link:
+    url: https://test.com
+    title: Test Link
+`);
+    const config = parseConfig(TEST_FILE);
+    expect(config.domain).toBe('short.io');
+    expect(Object.keys(config.links)).toHaveLength(2);
+    expect(config.links['my-link'].domain).toBeUndefined();
+    expect(config.links['another-link'].domain).toBeUndefined();
+  });
+
+  it('allows per-link domain to override top-level domain', () => {
+    writeTestConfig(`
+domain: default.io
+links:
+  my-link:
+    url: https://example.com
+  override-link:
+    url: https://test.com
+    domain: custom.io
+`);
+    const config = parseConfig(TEST_FILE);
+    expect(config.domain).toBe('default.io');
+    expect(config.links['my-link'].domain).toBeUndefined();
+    expect(config.links['override-link'].domain).toBe('custom.io');
+  });
+
+  it('throws ConfigError for empty top-level domain', () => {
+    writeTestConfig(`
+domain: ""
+links:
+  my-link:
+    url: https://example.com
+`);
+    expect(() => parseConfig(TEST_FILE)).toThrow(ConfigError);
+    expect(() => parseConfig(TEST_FILE)).toThrow('Top-level "domain" must be a non-empty string');
+  });
+
+  it('throws ConfigError for non-string top-level domain', () => {
+    writeTestConfig(`
+domain: 123
+links:
+  my-link:
+    url: https://example.com
+`);
+    expect(() => parseConfig(TEST_FILE)).toThrow(ConfigError);
+    expect(() => parseConfig(TEST_FILE)).toThrow('Top-level "domain" must be a non-empty string');
   });
 
   it('throws ConfigError for invalid URL', () => {
@@ -179,5 +234,32 @@ describe('getUniqueDomains', () => {
     const config = { links: {} };
     const domains = getUniqueDomains(config);
     expect(domains).toEqual([]);
+  });
+
+  it('uses top-level domain when link domain is not specified', () => {
+    const config = {
+      domain: 'default.io',
+      links: {
+        'link1': { url: 'https://example.com' },
+        'link2': { url: 'https://test.com', domain: 'custom.io' },
+      },
+    };
+    const domains = getUniqueDomains(config);
+    expect(domains).toHaveLength(2);
+    expect(domains).toContain('default.io');
+    expect(domains).toContain('custom.io');
+  });
+
+  it('returns only top-level domain when all links use it', () => {
+    const config = {
+      domain: 'default.io',
+      links: {
+        'link1': { url: 'https://example.com' },
+        'link2': { url: 'https://test.com' },
+      },
+    };
+    const domains = getUniqueDomains(config);
+    expect(domains).toHaveLength(1);
+    expect(domains).toContain('default.io');
   });
 });

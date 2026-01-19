@@ -30,12 +30,15 @@ describe('getLinksArray', () => {
       slug: 'link-a',
       url: 'https://a.com',
       domain: 'short.io',
+      title: undefined,
+      tags: undefined,
     });
     expect(links).toContainEqual({
       slug: 'link-b',
       url: 'https://b.com',
       domain: 'short.io',
       title: 'Link B',
+      tags: undefined,
     });
   });
 
@@ -57,5 +60,35 @@ describe('getLinksArray', () => {
     };
     const links = getLinksArray(config);
     expect(links[0].tags).toEqual(['tag1', 'tag2']);
+  });
+
+  it('applies top-level domain when link domain is not specified', () => {
+    const config: YamlConfig = {
+      domain: 'default.io',
+      links: {
+        'link-a': { url: 'https://a.com' },
+        'link-b': { url: 'https://b.com' },
+      },
+    };
+    const links = getLinksArray(config);
+    expect(links).toHaveLength(2);
+    expect(links[0].domain).toBe('default.io');
+    expect(links[1].domain).toBe('default.io');
+  });
+
+  it('allows per-link domain to override top-level domain', () => {
+    const config: YamlConfig = {
+      domain: 'default.io',
+      links: {
+        'link-a': { url: 'https://a.com' },
+        'link-b': { url: 'https://b.com', domain: 'custom.io' },
+      },
+    };
+    const links = getLinksArray(config);
+    expect(links).toHaveLength(2);
+    const linkA = links.find(l => l.slug === 'link-a');
+    const linkB = links.find(l => l.slug === 'link-b');
+    expect(linkA?.domain).toBe('default.io');
+    expect(linkB?.domain).toBe('custom.io');
   });
 });

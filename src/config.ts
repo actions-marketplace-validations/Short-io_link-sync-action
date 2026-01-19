@@ -30,6 +30,11 @@ function validateConfig(config: unknown): asserts config is YamlConfig {
 
   const obj = config as Record<string, unknown>;
 
+  const defaultDomain = obj.domain;
+  if (defaultDomain !== undefined && (typeof defaultDomain !== 'string' || defaultDomain.trim() === '')) {
+    throw new ConfigError('Top-level "domain" must be a non-empty string');
+  }
+
   if (!obj.links || typeof obj.links !== 'object' || Array.isArray(obj.links)) {
     throw new ConfigError('Config must have a "links" map (use slug as key)');
   }
@@ -41,10 +46,11 @@ function validateConfig(config: unknown): asserts config is YamlConfig {
     if (!slug || slug.trim() === '') {
       throw new ConfigError('Link slug (key) must be a non-empty string');
     }
-    validateLink(link, slug);
+    validateLink(link, slug, defaultDomain as string | undefined);
 
     const validatedLink = link as YamlLinkValue;
-    const key = `${validatedLink.domain}/${slug}`;
+    const domain = validatedLink.domain ?? defaultDomain;
+    const key = `${domain}/${slug}`;
     if (seen.has(key)) {
       throw new ConfigError(`Duplicate link: ${key}`);
     }
@@ -52,7 +58,7 @@ function validateConfig(config: unknown): asserts config is YamlConfig {
   }
 }
 
-function validateLink(link: unknown, slug: string): asserts link is YamlLinkValue {
+function validateLink(link: unknown, slug: string, defaultDomain?: string): asserts link is YamlLinkValue {
   if (!link || typeof link !== 'object') {
     throw new ConfigError(`Link "${slug}" must be an object`);
   }
@@ -63,8 +69,12 @@ function validateLink(link: unknown, slug: string): asserts link is YamlLinkValu
     throw new ConfigError(`Link "${slug}" must have a non-empty "url" string`);
   }
 
-  if (typeof obj.domain !== 'string' || obj.domain.trim() === '') {
-    throw new ConfigError(`Link "${slug}" must have a non-empty "domain" string`);
+  if (obj.domain !== undefined) {
+    if (typeof obj.domain !== 'string' || obj.domain.trim() === '') {
+      throw new ConfigError(`Link "${slug}" "domain" must be a non-empty string`);
+    }
+  } else if (!defaultDomain) {
+    throw new ConfigError(`Link "${slug}" must have a "domain" (or set top-level "domain")`);
   }
 
   try {
@@ -91,7 +101,7 @@ function validateLink(link: unknown, slug: string): asserts link is YamlLinkValu
 
 export function getUniqueDomains(config: YamlConfig): string[] {
   const domains = new Set<string>();
-  for (const link of Object.values(config.links)) {
+  for (const link of getLinksArray(config)) {
     domains.add(link.domain);
   }
   return Array.from(domains);
