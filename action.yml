@@ -1,0 +1,30 @@
+name: 'Short.io Link Sync'
+description: 'Sync short links from shortio.yaml to Short.io'
+author: 'Short.io'
+branding:
+  icon: 'link'
+  color: 'blue'
+inputs:
+  api_key:
+    description: 'Short.io API key'
+    required: true
+  config_path:
+    description: 'Path to shortio.yaml file'
+    required: false
+    default: 'shortio.yaml'
+  dry_run:
+    description: 'Preview changes without applying'
+    required: false
+    default: 'false'
+outputs:
+  created:
+    description: 'Number of links created'
+  updated:
+    description: 'Number of links updated'
+  deleted:
+    description: 'Number of links deleted'
+  summary:
+    description: 'Summary of all changes'
+runs:
+  using: 'node20'
+  main: 'dist/index.js'
