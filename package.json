@@ -1,6 +1,6 @@
 {
   "name": "shortio-link-sync-action",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "GitHub Action to sync short links from shortio.yaml to Short.io",
   "main": "dist/index.js",
   "scripts": {
@@ -19,7 +19,7 @@
   "license": "MIT",
   "dependencies": {
     "@actions/core": "^2.0.2",
-    "@short.io/client-node": "^2.2.0",
+    "@short.io/client-node": "^3.0.4",
     "yaml": "^2.8.2"
   },
   "devDependencies": {

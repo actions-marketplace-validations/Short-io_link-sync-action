@@ -3,28 +3,28 @@ import { ShortioClient, ShortioApiError } from './shortio-client.js';
 
 vi.mock('@short.io/client-node', () => ({
   setApiKey: vi.fn(),
-  getApiDomains: vi.fn(),
-  getApiLinks: vi.fn(),
-  postLinks: vi.fn(),
-  postLinksByLinkId: vi.fn(),
-  deleteLinksByLinkId: vi.fn(),
+  listDomains: vi.fn(),
+  listLinks: vi.fn(),
+  createLink: vi.fn(),
+  updateLink: vi.fn(),
+  deleteLink: vi.fn(),
 }));
 
 import {
   setApiKey,
-  getApiDomains,
-  getApiLinks,
-  postLinks,
-  postLinksByLinkId,
-  deleteLinksByLinkId,
+  listDomains,
+  listLinks,
+  createLink,
+  updateLink,
+  deleteLink,
 } from '@short.io/client-node';
 
 const mockSetApiKey = vi.mocked(setApiKey);
-const mockGetApiDomains = vi.mocked(getApiDomains);
-const mockGetApiLinks = vi.mocked(getApiLinks);
-const mockPostLinks = vi.mocked(postLinks);
-const mockPostLinksByLinkId = vi.mocked(postLinksByLinkId);
-const mockDeleteLinksByLinkId = vi.mocked(deleteLinksByLinkId);
+const mockListDomains = vi.mocked(listDomains);
+const mockListLinks = vi.mocked(listLinks);
+const mockCreateLink = vi.mocked(createLink);
+const mockUpdateLink = vi.mocked(updateLink);
+const mockDeleteLink = vi.mocked(deleteLink);
 
 // Helper to create mock request/response for SDK results
 const mockRequest = new Request('https://api.short.io');
@@ -62,9 +62,9 @@ describe('ShortioClient', () => {
 
   describe('getDomains', () => {
     it('fetches domains and caches them', async () => {
-      mockGetApiDomains.mockResolvedValueOnce(successResult([
-        { id: 1, hostname: 'short.io', unicodeHostname: 'short.io', state: 'configured' as const, createdAt: '', updatedAt: '', hasFavicon: false, hideReferer: false, linkType: 'random' as const, cloaking: false, hideVisitorIp: false, enableAI: false, httpsLevel: 'none' as const, httpsLinks: false, clientStorage: {}, caseSensitive: false, incrementCounter: '', robots: 'allow' as const, exportEnabled: false, isFavorite: false },
-        { id: 2, hostname: 'example.link', unicodeHostname: 'example.link', state: 'configured' as const, createdAt: '', updatedAt: '', hasFavicon: false, hideReferer: false, linkType: 'random' as const, cloaking: false, hideVisitorIp: false, enableAI: false, httpsLevel: 'none' as const, httpsLinks: false, clientStorage: {}, caseSensitive: false, incrementCounter: '', robots: 'allow' as const, exportEnabled: false, isFavorite: false },
+      mockListDomains.mockResolvedValueOnce(successResult([
+        { id: 1, hostname: 'short.io', unicodeHostname: 'short.io', state: 'configured' as const, createdAt: '', updatedAt: '', hasFavicon: false, hideReferer: false, linkType: 'random' as const, cloaking: false, hideVisitorIp: false, enableAI: false, httpsLevel: 'none' as const, httpsLinks: false, clientStorage: {}, caseSensitive: false, incrementCounter: '', robots: 'allow' as const, exportEnabled: false, enableConversionTracking: false, qrScanTracking: false, isFavorite: false },
+        { id: 2, hostname: 'example.link', unicodeHostname: 'example.link', state: 'configured' as const, createdAt: '', updatedAt: '', hasFavicon: false, hideReferer: false, linkType: 'random' as const, cloaking: false, hideVisitorIp: false, enableAI: false, httpsLevel: 'none' as const, httpsLinks: false, clientStorage: {}, caseSensitive: false, incrementCounter: '', robots: 'allow' as const, exportEnabled: false, enableConversionTracking: false, qrScanTracking: false, isFavorite: false },
       ]));
 
       const result = await client.getDomains();
@@ -73,14 +73,14 @@ describe('ShortioClient', () => {
         { id: 1, hostname: 'short.io' },
         { id: 2, hostname: 'example.link' },
       ]);
-      expect(mockGetApiDomains).toHaveBeenCalledTimes(1);
+      expect(mockListDomains).toHaveBeenCalledTimes(1);
     });
   });
 
   describe('getDomainId', () => {
     it('returns cached domain id', async () => {
-      mockGetApiDomains.mockResolvedValueOnce(successResult([
-        { id: 123, hostname: 'short.io', unicodeHostname: 'short.io', state: 'configured' as const, createdAt: '', updatedAt: '', hasFavicon: false, hideReferer: false, linkType: 'random' as const, cloaking: false, hideVisitorIp: false, enableAI: false, httpsLevel: 'none' as const, httpsLinks: false, clientStorage: {}, caseSensitive: false, incrementCounter: '', robots: 'allow' as const, exportEnabled: false, isFavorite: false },
+      mockListDomains.mockResolvedValueOnce(successResult([
+        { id: 123, hostname: 'short.io', unicodeHostname: 'short.io', state: 'configured' as const, createdAt: '', updatedAt: '', hasFavicon: false, hideReferer: false, linkType: 'random' as const, cloaking: false, hideVisitorIp: false, enableAI: false, httpsLevel: 'none' as const, httpsLinks: false, clientStorage: {}, caseSensitive: false, incrementCounter: '', robots: 'allow' as const, exportEnabled: false, enableConversionTracking: false, qrScanTracking: false, isFavorite: false },
       ]));
 
       const id = await client.getDomainId('short.io');
@@ -89,12 +89,12 @@ describe('ShortioClient', () => {
       // Second call should use cache
       const id2 = await client.getDomainId('short.io');
       expect(id2).toBe(123);
-      expect(mockGetApiDomains).toHaveBeenCalledTimes(1);
+      expect(mockListDomains).toHaveBeenCalledTimes(1);
     });
 
     it('throws error for unknown domain', async () => {
-      mockGetApiDomains.mockResolvedValueOnce(successResult([
-        { id: 1, hostname: 'other.io', unicodeHostname: 'other.io', state: 'configured' as const, createdAt: '', updatedAt: '', hasFavicon: false, hideReferer: false, linkType: 'random' as const, cloaking: false, hideVisitorIp: false, enableAI: false, httpsLevel: 'none' as const, httpsLinks: false, clientStorage: {}, caseSensitive: false, incrementCounter: '', robots: 'allow' as const, exportEnabled: false, isFavorite: false },
+      mockListDomains.mockResolvedValueOnce(successResult([
+        { id: 1, hostname: 'other.io', unicodeHostname: 'other.io', state: 'configured' as const, createdAt: '', updatedAt: '', hasFavicon: false, hideReferer: false, linkType: 'random' as const, cloaking: false, hideVisitorIp: false, enableAI: false, httpsLevel: 'none' as const, httpsLinks: false, clientStorage: {}, caseSensitive: false, incrementCounter: '', robots: 'allow' as const, exportEnabled: false, enableConversionTracking: false, qrScanTracking: false, isFavorite: false },
       ]));
 
       await expect(client.getDomainId('unknown.io')).rejects.toThrow('Domain not found');
@@ -103,10 +103,10 @@ describe('ShortioClient', () => {
 
   describe('getLinks', () => {
     it('fetches links for domain', async () => {
-      mockGetApiDomains.mockResolvedValueOnce(successResult([
-        { id: 1, hostname: 'short.io', unicodeHostname: 'short.io', state: 'configured' as const, createdAt: '', updatedAt: '', hasFavicon: false, hideReferer: false, linkType: 'random' as const, cloaking: false, hideVisitorIp: false, enableAI: false, httpsLevel: 'none' as const, httpsLinks: false, clientStorage: {}, caseSensitive: false, incrementCounter: '', robots: 'allow' as const, exportEnabled: false, isFavorite: false },
+      mockListDomains.mockResolvedValueOnce(successResult([
+        { id: 1, hostname: 'short.io', unicodeHostname: 'short.io', state: 'configured' as const, createdAt: '', updatedAt: '', hasFavicon: false, hideReferer: false, linkType: 'random' as const, cloaking: false, hideVisitorIp: false, enableAI: false, httpsLevel: 'none' as const, httpsLinks: false, clientStorage: {}, caseSensitive: false, incrementCounter: '', robots: 'allow' as const, exportEnabled: false, enableConversionTracking: false, qrScanTracking: false, isFavorite: false },
       ]));
-      mockGetApiLinks.mockResolvedValueOnce(successResult({
+      mockListLinks.mockResolvedValueOnce(successResult({
         count: 1,
         links: [
           { idString: 'link1', id: 'link1', originalURL: 'https://example.com', path: 'test', title: 'Test', tags: ['tag1'], shortURL: '', secureShortURL: '' },
@@ -128,10 +128,10 @@ describe('ShortioClient', () => {
     });
 
     it('handles pagination', async () => {
-      mockGetApiDomains.mockResolvedValueOnce(successResult([
-        { id: 1, hostname: 'short.io', unicodeHostname: 'short.io', state: 'configured' as const, createdAt: '', updatedAt: '', hasFavicon: false, hideReferer: false, linkType: 'random' as const, cloaking: false, hideVisitorIp: false, enableAI: false, httpsLevel: 'none' as const, httpsLinks: false, clientStorage: {}, caseSensitive: false, incrementCounter: '', robots: 'allow' as const, exportEnabled: false, isFavorite: false },
+      mockListDomains.mockResolvedValueOnce(successResult([
+        { id: 1, hostname: 'short.io', unicodeHostname: 'short.io', state: 'configured' as const, createdAt: '', updatedAt: '', hasFavicon: false, hideReferer: false, linkType: 'random' as const, cloaking: false, hideVisitorIp: false, enableAI: false, httpsLevel: 'none' as const, httpsLinks: false, clientStorage: {}, caseSensitive: false, incrementCounter: '', robots: 'allow' as const, exportEnabled: false, enableConversionTracking: false, qrScanTracking: false, isFavorite: false },
       ]));
-      mockGetApiLinks
+      mockListLinks
         .mockResolvedValueOnce(successResult({
           count: 151,
           links: Array(150).fill(null).map((_, i) => ({
@@ -158,7 +158,7 @@ describe('ShortioClient', () => {
 
   describe('createLink', () => {
     it('creates a link', async () => {
-      mockPostLinks.mockResolvedValueOnce(successResult({
+      mockCreateLink.mockResolvedValueOnce(successResult({
         idString: 'new-link',
         id: 'new-link',
         originalURL: 'https://example.com',
@@ -177,7 +177,7 @@ describe('ShortioClient', () => {
       });
 
       expect(result.id).toBe('new-link');
-      expect(mockPostLinks).toHaveBeenCalledWith({
+      expect(mockCreateLink).toHaveBeenCalledWith({
         body: {
           originalURL: 'https://example.com',
           domain: 'short.io',
@@ -191,7 +191,7 @@ describe('ShortioClient', () => {
 
   describe('updateLink', () => {
     it('updates a link', async () => {
-      mockPostLinksByLinkId.mockResolvedValueOnce(successResult({
+      mockUpdateLink.mockResolvedValueOnce(successResult({
         idString: '1',
         id: '1',
         originalURL: 'https://new-url.com',
@@ -208,7 +208,7 @@ describe('ShortioClient', () => {
         tags: ['new-tag'],
       });
 
-      expect(mockPostLinksByLinkId).toHaveBeenCalledWith({
+      expect(mockUpdateLink).toHaveBeenCalledWith({
         path: { linkId: '1' },
         body: {
           originalURL: 'https://new-url.com',
@@ -219,7 +219,7 @@ describe('ShortioClient', () => {
     });
 
     it('sends empty values to clear title/tags', async () => {
-      mockPostLinksByLinkId.mockResolvedValueOnce(successResult({
+      mockUpdateLink.mockResolvedValueOnce(successResult({
         idString: '1',
         id: '1',
         originalURL: 'https://example.com',
@@ -236,7 +236,7 @@ describe('ShortioClient', () => {
         tags: [],
       });
 
-      expect(mockPostLinksByLinkId).toHaveBeenCalledWith({
+      expect(mockUpdateLink).toHaveBeenCalledWith({
         path: { linkId: '1' },
         body: {
           originalURL: 'https://example.com',
@@ -249,11 +249,11 @@ describe('ShortioClient', () => {
 
   describe('deleteLink', () => {
     it('deletes a link', async () => {
-      mockDeleteLinksByLinkId.mockResolvedValueOnce(successResult({ success: true }));
+      mockDeleteLink.mockResolvedValueOnce(successResult({ success: true }));
 
       await client.deleteLink('1');
 
-      expect(mockDeleteLinksByLinkId).toHaveBeenCalledWith({
+      expect(mockDeleteLink).toHaveBeenCalledWith({
         path: { link_id: '1' },
       });
     });
@@ -261,13 +261,13 @@ describe('ShortioClient', () => {
 
   describe('error handling', () => {
     it('throws ShortioApiError on API error', async () => {
-      mockGetApiDomains.mockResolvedValueOnce(errorResult({ error: 'Unauthorized' }));
+      mockListDomains.mockResolvedValueOnce(errorResult({ error: 'Unauthorized' }));
 
       await expect(client.getDomains()).rejects.toThrow(ShortioApiError);
     });
 
     it('throws ShortioApiError on createLink error', async () => {
-      mockPostLinks.mockResolvedValueOnce(errorResult({ message: 'Link already exists', statusCode: 409 }));
+      mockCreateLink.mockResolvedValueOnce(errorResult({ message: 'Link already exists', statusCode: 409 }));
 
       await expect(client.createLink({
         originalURL: 'https://example.com',

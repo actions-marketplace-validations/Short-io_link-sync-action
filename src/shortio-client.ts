@@ -1,10 +1,10 @@
 import {
   setApiKey,
-  getApiDomains,
-  getApiLinks,
-  postLinks,
-  postLinksByLinkId,
-  deleteLinksByLinkId,
+  listDomains as sdkListDomains,
+  listLinks as sdkListLinks,
+  createLink as sdkCreateLink,
+  updateLink as sdkUpdateLink,
+  deleteLink as sdkDeleteLink,
 } from '@short.io/client-node';
 import type { ShortioLink, ShortioCreateLink, ShortioUpdateLink, ShortioDomain } from './types.js';
 
@@ -27,7 +27,7 @@ export class ShortioClient {
   }
 
   async getDomains(): Promise<ShortioDomain[]> {
-    const result = await getApiDomains();
+    const result = await sdkListDomains();
     if (result.error) {
       throw new ShortioApiError('Failed to fetch domains', undefined, result.error);
     }
@@ -56,7 +56,7 @@ export class ShortioClient {
     let pageToken: string | undefined;
 
     do {
-      const result = await getApiLinks({
+      const result = await sdkListLinks({
         query: {
           domain_id: domainId,
           limit: 150,
@@ -114,7 +114,7 @@ export class ShortioClient {
 
   async createLink(params: ShortioCreateLink): Promise<ShortioLink> {
     const { folderId, ...rest } = params;
-    const result = await postLinks({
+    const result = await sdkCreateLink({
       body: {
         ...rest,
         ...(folderId ? { FolderId: folderId } : {}),
@@ -140,7 +140,7 @@ export class ShortioClient {
 
   async updateLink(linkId: string, params: ShortioUpdateLink): Promise<ShortioLink> {
     const { folderId, ...rest } = params;
-    const result = await postLinksByLinkId({
+    const result = await sdkUpdateLink({
       path: { linkId },
       body: {
         ...rest,
@@ -166,7 +166,7 @@ export class ShortioClient {
   }
 
   async deleteLink(linkId: string): Promise<void> {
-    const result = await deleteLinksByLinkId({
+    const result = await sdkDeleteLink({
       path: { link_id: linkId },
     });
 
