@@ -98,11 +98,6 @@ export interface ShortioUpdateLink extends ShortioLinkParams {
   path?: string;
 }
 
-export interface ShortioDomain {
-  id: number;
-  hostname: string;
-}
-
 export interface SyncResult {
   created: number;
   updated: number;

@@ -1,21 +1,87 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { computeDiff, executeSync, formatSummary } from './sync.js';
+import { computeDiff, executeSync, formatSummary, resetDomainCache } from './sync.js';
 import type { YamlConfig, ShortioLink, LinkDiff } from './types.js';
 import { MANAGED_TAG } from './types.js';
-import type { ShortioClient } from './shortio-client.js';
 
 vi.mock('@actions/core', () => ({
   info: vi.fn(),
   error: vi.fn(),
 }));
 
-function createMockClient(existingLinks: ShortioLink[] = []): ShortioClient {
+vi.mock('@short.io/client-node', () => ({
+  listDomains: vi.fn(),
+  listLinks: vi.fn(),
+  createLink: vi.fn(),
+  updateLink: vi.fn(),
+  deleteLink: vi.fn(),
+}));
+
+import {
+  listDomains,
+  listLinks,
+  createLink,
+  updateLink,
+  deleteLink,
+} from '@short.io/client-node';
+
+const mockListDomains = vi.mocked(listDomains);
+const mockListLinks = vi.mocked(listLinks);
+const mockCreateLink = vi.mocked(createLink);
+const mockUpdateLink = vi.mocked(updateLink);
+const mockDeleteLink = vi.mocked(deleteLink);
+
+const mockRequest = new Request('https://api.short.io');
+const mockResponse = new Response();
+
+function successResult<T>(data: T) {
   return {
-    getLinks: vi.fn().mockResolvedValue(existingLinks),
-    createLink: vi.fn().mockResolvedValue({}),
-    updateLink: vi.fn().mockResolvedValue({}),
-    deleteLink: vi.fn().mockResolvedValue(undefined),
-  } as unknown as ShortioClient;
+    data,
+    error: undefined,
+    request: mockRequest,
+    response: mockResponse,
+  };
+}
+
+function errorResult<T>(error: T) {
+  return {
+    data: undefined,
+    error,
+    request: mockRequest,
+    response: mockResponse,
+  };
+}
+
+/** Configure mocks so fetchAllLinks returns the provided ShortioLink[] for any domain */
+function setupMockLinks(existingLinks: ShortioLink[]): void {
+  mockListDomains.mockResolvedValue(successResult(
+    // Derive unique domains from provided links
+    [...new Set(existingLinks.map(l => l.domain))].map(hostname => ({
+      id: existingLinks.find(l => l.domain === hostname)!.domainId,
+      hostname,
+      unicodeHostname: hostname,
+      state: 'configured' as const,
+      createdAt: '', updatedAt: '', hasFavicon: false, hideReferer: false,
+      linkType: 'random' as const, cloaking: false, hideVisitorIp: false,
+      enableAI: false, httpsLevel: 'none' as const, httpsLinks: false,
+      clientStorage: {}, caseSensitive: false, incrementCounter: '',
+      robots: 'allow' as const, exportEnabled: false,
+      enableConversionTracking: false, qrScanTracking: false, isFavorite: false,
+    }))
+  ));
+
+  mockListLinks.mockResolvedValue(successResult({
+    count: existingLinks.length,
+    links: existingLinks.map(l => ({
+      idString: l.id,
+      id: l.id,
+      originalURL: l.originalURL,
+      path: l.path,
+      title: l.title,
+      tags: l.tags,
+      shortURL: '',
+      secureShortURL: '',
+    })),
+  }));
 }
 
 function makeConfig(domain: string, links: Record<string, { url: string; title?: string; tags?: string[] }>): YamlConfig {
@@ -25,12 +91,21 @@ function makeConfig(domain: string, links: Record<string, { url: string; title?:
 }
 
 describe('computeDiff', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    resetDomainCache();
+  });
+
   it('identifies links to create', async () => {
     const config = makeConfig('short.io', {
       'new-link': { url: 'https://example.com' },
     });
-    const client = createMockClient([]);
-    const diff = await computeDiff(config, client);
+    setupMockLinks([]);
+    // Need to provide a domain for listDomains since there are no existing links
+    mockListDomains.mockResolvedValue(successResult([
+      { id: 1, hostname: 'short.io', unicodeHostname: 'short.io', state: 'configured' as const, createdAt: '', updatedAt: '', hasFavicon: false, hideReferer: false, linkType: 'random' as const, cloaking: false, hideVisitorIp: false, enableAI: false, httpsLevel: 'none' as const, httpsLinks: false, clientStorage: {}, caseSensitive: false, incrementCounter: '', robots: 'allow' as const, exportEnabled: false, enableConversionTracking: false, qrScanTracking: false, isFavorite: false },
+    ]));
+    const diff = await computeDiff(config);
 
     expect(diff.toCreate).toHaveLength(1);
     expect(diff.toCreate[0].slug).toBe('new-link');
@@ -47,8 +122,8 @@ describe('computeDiff', () => {
       { id: '2', originalURL: 'https://old.com', path: 'old-link', domain: 'short.io', domainId: 1, tags: [MANAGED_TAG] },
       { id: '3', originalURL: 'https://unmanaged.com', path: 'unmanaged-link', domain: 'short.io', domainId: 1 },
     ];
-    const client = createMockClient(existingLinks);
-    const diff = await computeDiff(config, client);
+    setupMockLinks(existingLinks);
+    const diff = await computeDiff(config);
 
     expect(diff.toCreate).toHaveLength(0);
     expect(diff.toUpdate).toHaveLength(0);
@@ -64,8 +139,8 @@ describe('computeDiff', () => {
     const existingLinks: ShortioLink[] = [
       { id: '1', originalURL: 'https://old-url.com', path: 'my-link', domain: 'short.io', domainId: 1 },
     ];
-    const client = createMockClient(existingLinks);
-    const diff = await computeDiff(config, client);
+    setupMockLinks(existingLinks);
+    const diff = await computeDiff(config);
 
     expect(diff.toCreate).toHaveLength(0);
     expect(diff.toUpdate).toHaveLength(1);
@@ -80,8 +155,8 @@ describe('computeDiff', () => {
     const existingLinks: ShortioLink[] = [
       { id: '1', originalURL: 'https://example.com', path: 'my-link', domain: 'short.io', domainId: 1, title: 'Old Title' },
     ];
-    const client = createMockClient(existingLinks);
-    const diff = await computeDiff(config, client);
+    setupMockLinks(existingLinks);
+    const diff = await computeDiff(config);
 
     expect(diff.toUpdate).toHaveLength(1);
     expect(diff.toUpdate[0].yaml.title).toBe('New Title');
@@ -94,8 +169,8 @@ describe('computeDiff', () => {
     const existingLinks: ShortioLink[] = [
       { id: '1', originalURL: 'https://example.com', path: 'my-link', domain: 'short.io', domainId: 1, title: 'Old Title' },
     ];
-    const client = createMockClient(existingLinks);
-    const diff = await computeDiff(config, client);
+    setupMockLinks(existingLinks);
+    const diff = await computeDiff(config);
 
     expect(diff.toUpdate).toHaveLength(1);
     expect(diff.toUpdate[0].yaml.title).toBeUndefined();
@@ -108,8 +183,8 @@ describe('computeDiff', () => {
     const existingLinks: ShortioLink[] = [
       { id: '1', originalURL: 'https://example.com', path: 'my-link', domain: 'short.io', domainId: 1, tags: ['old-tag'] },
     ];
-    const client = createMockClient(existingLinks);
-    const diff = await computeDiff(config, client);
+    setupMockLinks(existingLinks);
+    const diff = await computeDiff(config);
 
     expect(diff.toUpdate).toHaveLength(1);
     expect(diff.toUpdate[0].yaml.tags).toEqual(['new-tag']);
@@ -122,8 +197,8 @@ describe('computeDiff', () => {
     const existingLinks: ShortioLink[] = [
       { id: '1', originalURL: 'https://example.com', path: 'my-link', domain: 'short.io', domainId: 1, tags: ['old-tag'] },
     ];
-    const client = createMockClient(existingLinks);
-    const diff = await computeDiff(config, client);
+    setupMockLinks(existingLinks);
+    const diff = await computeDiff(config);
 
     expect(diff.toUpdate).toHaveLength(1);
     expect(diff.toUpdate[0].yaml.tags).toBeUndefined();
@@ -136,8 +211,8 @@ describe('computeDiff', () => {
     const existingLinks: ShortioLink[] = [
       { id: '1', originalURL: 'https://example.com', path: 'my-link', domain: 'short.io', domainId: 1, title: 'Same Title', tags: ['tag1'] },
     ];
-    const client = createMockClient(existingLinks);
-    const diff = await computeDiff(config, client);
+    setupMockLinks(existingLinks);
+    const diff = await computeDiff(config);
 
     expect(diff.toCreate).toHaveLength(0);
     expect(diff.toUpdate).toHaveLength(0);
@@ -151,8 +226,8 @@ describe('computeDiff', () => {
     const existingLinks: ShortioLink[] = [
       { id: '1', originalURL: 'https://example.com', path: 'my-link', domain: 'short.io', domainId: 1, title: '' },
     ];
-    const client = createMockClient(existingLinks);
-    const diff = await computeDiff(config, client);
+    setupMockLinks(existingLinks);
+    const diff = await computeDiff(config);
 
     expect(diff.toUpdate).toHaveLength(0);
   });
@@ -164,8 +239,8 @@ describe('computeDiff', () => {
     const existingLinks: ShortioLink[] = [
       { id: '1', originalURL: 'https://example.com', path: 'my-link', domain: 'short.io', domainId: 1, tags: ['a', 'b'] },
     ];
-    const client = createMockClient(existingLinks);
-    const diff = await computeDiff(config, client);
+    setupMockLinks(existingLinks);
+    const diff = await computeDiff(config);
 
     expect(diff.toUpdate).toHaveLength(0);
   });
@@ -177,8 +252,15 @@ describe('computeDiff', () => {
         { domain: 'second.io', links: { 'link2': { url: 'https://second.com' } } },
       ],
     };
-    const client = createMockClient([]);
-    const diff = await computeDiff(config, client);
+    mockListDomains.mockResolvedValue(successResult([
+      { id: 1, hostname: 'first.io', unicodeHostname: 'first.io', state: 'configured' as const, createdAt: '', updatedAt: '', hasFavicon: false, hideReferer: false, linkType: 'random' as const, cloaking: false, hideVisitorIp: false, enableAI: false, httpsLevel: 'none' as const, httpsLinks: false, clientStorage: {}, caseSensitive: false, incrementCounter: '', robots: 'allow' as const, exportEnabled: false, enableConversionTracking: false, qrScanTracking: false, isFavorite: false },
+      { id: 2, hostname: 'second.io', unicodeHostname: 'second.io', state: 'configured' as const, createdAt: '', updatedAt: '', hasFavicon: false, hideReferer: false, linkType: 'random' as const, cloaking: false, hideVisitorIp: false, enableAI: false, httpsLevel: 'none' as const, httpsLinks: false, clientStorage: {}, caseSensitive: false, incrementCounter: '', robots: 'allow' as const, exportEnabled: false, enableConversionTracking: false, qrScanTracking: false, isFavorite: false },
+    ]));
+    mockListLinks.mockResolvedValue(successResult({
+      count: 0,
+      links: [],
+    }));
+    const diff = await computeDiff(config);
 
     expect(diff.toCreate).toHaveLength(2);
     expect(diff.toCreate.map(l => l.domain)).toContain('first.io');
@@ -189,6 +271,14 @@ describe('computeDiff', () => {
 describe('executeSync', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    resetDomainCache();
+    mockCreateLink.mockResolvedValue(successResult({
+      idString: 'new', id: 'new', originalURL: '', path: '', shortURL: '', secureShortURL: '',
+    }));
+    mockUpdateLink.mockResolvedValue(successResult({
+      idString: '1', id: '1', originalURL: '', path: '', shortURL: '', secureShortURL: '',
+    }));
+    mockDeleteLink.mockResolvedValue(successResult({ success: true }));
   });
 
   it('creates links with managed tag', async () => {
@@ -197,15 +287,15 @@ describe('executeSync', () => {
       toUpdate: [],
       toDelete: [],
     };
-    const client = createMockClient();
-    const result = await executeSync(diff, client, false);
+    const result = await executeSync(diff, false);
 
-    expect(client.createLink).toHaveBeenCalledWith({
-      originalURL: 'https://example.com',
-      domain: 'short.io',
-      path: 'new-link',
-      title: undefined,
-      tags: [MANAGED_TAG],
+    expect(mockCreateLink).toHaveBeenCalledWith({
+      body: expect.objectContaining({
+        originalURL: 'https://example.com',
+        domain: 'short.io',
+        path: 'new-link',
+        tags: [MANAGED_TAG],
+      }),
     });
     expect(result.created).toBe(1);
   });
@@ -219,13 +309,15 @@ describe('executeSync', () => {
       }],
       toDelete: [],
     };
-    const client = createMockClient();
-    const result = await executeSync(diff, client, false);
+    const result = await executeSync(diff, false);
 
-    expect(client.updateLink).toHaveBeenCalledWith('1', expect.objectContaining({
-      originalURL: 'https://example.com',
-      tags: [MANAGED_TAG],
-    }));
+    expect(mockUpdateLink).toHaveBeenCalledWith({
+      path: { linkId: '1' },
+      body: expect.objectContaining({
+        originalURL: 'https://example.com',
+        tags: [MANAGED_TAG],
+      }),
+    });
     expect(result.updated).toBe(1);
   });
 
@@ -238,14 +330,16 @@ describe('executeSync', () => {
       }],
       toDelete: [],
     };
-    const client = createMockClient();
-    const result = await executeSync(diff, client, false);
+    const result = await executeSync(diff, false);
 
-    expect(client.updateLink).toHaveBeenCalledWith('1', expect.objectContaining({
-      originalURL: 'https://example.com',
-      title: 'New Title',
-      tags: ['new', MANAGED_TAG],
-    }));
+    expect(mockUpdateLink).toHaveBeenCalledWith({
+      path: { linkId: '1' },
+      body: expect.objectContaining({
+        originalURL: 'https://example.com',
+        title: 'New Title',
+        tags: ['new', MANAGED_TAG],
+      }),
+    });
     expect(result.updated).toBe(1);
   });
 
@@ -255,10 +349,11 @@ describe('executeSync', () => {
       toUpdate: [],
       toDelete: [{ id: '1', originalURL: 'https://old.com', path: 'old-link', domain: 'short.io', domainId: 1 }],
     };
-    const client = createMockClient();
-    const result = await executeSync(diff, client, false);
+    const result = await executeSync(diff, false);
 
-    expect(client.deleteLink).toHaveBeenCalledWith('1');
+    expect(mockDeleteLink).toHaveBeenCalledWith({
+      path: { link_id: '1' },
+    });
     expect(result.deleted).toBe(1);
   });
 
@@ -271,12 +366,11 @@ describe('executeSync', () => {
       }],
       toDelete: [{ id: '2', originalURL: 'https://delete.com', path: 'old-link', domain: 'short.io', domainId: 1 }],
     };
-    const client = createMockClient();
-    const result = await executeSync(diff, client, true);
+    const result = await executeSync(diff, true);
 
-    expect(client.createLink).not.toHaveBeenCalled();
-    expect(client.updateLink).not.toHaveBeenCalled();
-    expect(client.deleteLink).not.toHaveBeenCalled();
+    expect(mockCreateLink).not.toHaveBeenCalled();
+    expect(mockUpdateLink).not.toHaveBeenCalled();
+    expect(mockDeleteLink).not.toHaveBeenCalled();
     expect(result.created).toBe(1);
     expect(result.updated).toBe(1);
     expect(result.deleted).toBe(1);
@@ -288,9 +382,8 @@ describe('executeSync', () => {
       toUpdate: [],
       toDelete: [],
     };
-    const client = createMockClient();
-    (client.createLink as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('API Error'));
-    const result = await executeSync(diff, client, false);
+    mockCreateLink.mockResolvedValue(errorResult({ message: 'API Error', statusCode: 500 }));
+    const result = await executeSync(diff, false);
 
     expect(result.created).toBe(0);
     expect(result.errors).toHaveLength(1);

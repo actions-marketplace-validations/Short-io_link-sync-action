@@ -1,5 +1,11 @@
 import * as core from '@actions/core';
-import type { ShortioClient } from './shortio-client.js';
+import {
+  listDomains as sdkListDomains,
+  listLinks as sdkListLinks,
+  createLink as sdkCreateLink,
+  updateLink as sdkUpdateLink,
+  deleteLink as sdkDeleteLink,
+} from '@short.io/client-node';
 import type {
   YamlConfig,
   YamlLink,
@@ -11,6 +17,100 @@ import type {
 } from './types.js';
 import { getLinkKey, getLinksArray, MANAGED_TAG } from './types.js';
 import { getUniqueDomains } from './config.js';
+
+// --- Domain ID resolution ---
+
+const domainCache = new Map<string, number>();
+
+/** Reset the domain cache (exported for tests) */
+export function resetDomainCache(): void {
+  domainCache.clear();
+}
+
+async function resolveDomainId(hostname: string): Promise<number> {
+  if (domainCache.has(hostname)) {
+    return domainCache.get(hostname)!;
+  }
+  const result = await sdkListDomains();
+  if (result.error) {
+    throw new Error('Failed to fetch domains');
+  }
+  const domains = result.data ?? [];
+  for (const domain of domains) {
+    domainCache.set(domain.hostname, domain.id);
+  }
+  const id = domainCache.get(hostname);
+  if (!id) {
+    throw new Error(`Domain not found: ${hostname}`);
+  }
+  return id;
+}
+
+// --- Fetch all links with pagination ---
+
+async function fetchAllLinks(domain: string): Promise<ShortioLink[]> {
+  const domainId = await resolveDomainId(domain);
+  const allLinks: ShortioLink[] = [];
+  let pageToken: string | undefined;
+
+  do {
+    const result = await sdkListLinks({
+      query: {
+        domain_id: domainId,
+        limit: 150,
+        ...(pageToken ? { pageToken } : {}),
+      },
+    });
+
+    if (result.error) {
+      throw new Error(`Failed to fetch links for domain ${domain}`);
+    }
+
+    const data = result.data;
+    if (data?.links) {
+      for (const link of data.links) {
+        allLinks.push({
+          id: link.idString,
+          originalURL: link.originalURL,
+          path: link.path,
+          domain,
+          domainId,
+          title: link.title,
+          tags: link.tags,
+          cloaking: link.cloaking,
+          redirectType: link.redirectType ? Number(link.redirectType) as 301 | 302 | 307 | 308 : undefined,
+          expiresAt: link.expiresAt,
+          expiredURL: link.expiredURL,
+          password: link.password,
+          passwordContact: link.passwordContact,
+          utmSource: link.utmSource,
+          utmMedium: link.utmMedium,
+          utmCampaign: link.utmCampaign,
+          utmTerm: link.utmTerm,
+          utmContent: link.utmContent,
+          androidURL: link.androidURL,
+          iphoneURL: link.iphoneURL,
+          clicksLimit: link.clicksLimit,
+          splitURL: link.splitURL,
+          splitPercent: link.splitPercent,
+          integrationGA: link.integrationGA,
+          integrationFB: link.integrationFB,
+          integrationAdroll: link.integrationAdroll,
+          integrationGTM: link.integrationGTM,
+          folderId: link.FolderId,
+          archived: link.archived,
+          skipQS: link.skipQS,
+        });
+      }
+    }
+
+    pageToken = data?.nextPageToken;
+  } while (pageToken);
+
+  return allLinks;
+}
+
+// --- Helpers ---
 
 /** Extract optional link parameters from a YamlLink */
 function getLinkParams(link: YamlLink): Omit<ShortioCreateLink, 'originalURL' | 'domain' | 'path'> {
@@ -92,16 +192,17 @@ function needsUpdate(yaml: YamlLink, existing: ShortioLink): boolean {
   return false;
 }
 
+// --- Public API ---
+
 export async function computeDiff(
-  config: YamlConfig,
-  client: ShortioClient
+  config: YamlConfig
 ): Promise<LinkDiff> {
   const domains = getUniqueDomains(config);
 
   const existingLinks: ShortioLink[] = [];
   for (const domain of domains) {
     core.info(`Fetching existing links for domain: ${domain}`);
-    const links = await client.getLinks(domain);
+    const links = await fetchAllLinks(domain);
     existingLinks.push(...links);
     core.info(`Found ${links.length} existing links for ${domain}`);
   }
@@ -145,7 +246,6 @@ export async function computeDiff(
 
 export async function executeSync(
   diff: LinkDiff,
-  client: ShortioClient,
   dryRun: boolean
 ): Promise<SyncResult> {
   const result: SyncResult = {
@@ -166,13 +266,21 @@ export async function executeSync(
         try {
           const params = getLinkParams(link);
           const tags = params.tags ? [...params.tags, MANAGED_TAG] : [MANAGED_TAG];
-          await client.createLink({
-            ...params,
-            originalURL: link.url,
-            domain: link.domain,
-            path: link.slug,
-            tags,
+          const { folderId, ...restParams } = params;
+          const createResult = await sdkCreateLink({
+            body: {
+              ...restParams,
+              originalURL: link.url,
+              domain: link.domain,
+              path: link.slug,
+              tags,
+              ...(folderId ? { FolderId: folderId } : {}),
+            },
           });
+          if (createResult.error) {
+            const errorMsg = 'message' in createResult.error ? createResult.error.message : 'Unknown error';
+            throw new Error(`Failed to create link: ${errorMsg}`);
+          }
           core.info(`Created: ${key}`);
           result.created++;
         } catch (error) {
@@ -205,11 +313,20 @@ export async function executeSync(
           const params = getLinkParams(yaml);
           const baseTags = params.tags ?? [];
           const tags = baseTags.includes(MANAGED_TAG) ? baseTags : [...baseTags, MANAGED_TAG];
-          await client.updateLink(existing.id, {
-            ...params,
-            originalURL: yaml.url,
-            tags,
+          const { folderId, ...restParams } = params;
+          const updateResult = await sdkUpdateLink({
+            path: { linkId: existing.id },
+            body: {
+              ...restParams,
+              originalURL: yaml.url,
+              tags,
+              ...(folderId ? { FolderId: folderId } : {}),
+            },
           });
+          if (updateResult.error) {
+            const errorMsg = 'message' in updateResult.error ? updateResult.error.message : 'Unknown error';
+            throw new Error(`Failed to update link: ${errorMsg}`);
+          }
           core.info(`Updated: ${key}`);
           result.updated++;
         } catch (error) {
@@ -230,7 +347,12 @@ export async function executeSync(
         result.deleted++;
       } else {
         try {
-          await client.deleteLink(link.id);
+          const deleteResult = await sdkDeleteLink({
+            path: { link_id: link.id },
+          });
+          if (deleteResult.error) {
+            throw new Error(`Failed to delete link: ${link.id}`);
+          }
           core.info(`Deleted: ${key}`);
           result.deleted++;
         } catch (error) {

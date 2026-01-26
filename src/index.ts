@@ -1,7 +1,7 @@
 import * as core from '@actions/core';
 import * as path from 'path';
 import { parseConfig, ConfigError } from './config.js';
-import { ShortioClient, ShortioApiError } from './shortio-client.js';
+import { setApiKey } from '@short.io/client-node';
 import { computeDiff, executeSync, formatSummary } from './sync.js';
 import { getLinksArray } from './types.js';
 
@@ -22,10 +22,10 @@ async function run(): Promise<void> {
     const links = getLinksArray(config);
     core.info(`Found ${links.length} links across ${config.documents.length} document(s)`);
 
-    const client = new ShortioClient(apiKey);
+    setApiKey(apiKey);
 
     core.info('Computing diff between config and Short.io...');
-    const diff = await computeDiff(config, client);
+    const diff = await computeDiff(config);
 
     core.info(`Changes to make:`);
     core.info(`  To create: ${diff.toCreate.length}`);
@@ -41,7 +41,7 @@ async function run(): Promise<void> {
       return;
     }
 
-    const result = await executeSync(diff, client, dryRun);
+    const result = await executeSync(diff, dryRun);
 
     core.setOutput('created', result.created);
     core.setOutput('updated', result.updated);
@@ -57,11 +57,6 @@ async function run(): Promise<void> {
   } catch (error) {
     if (error instanceof ConfigError) {
       core.setFailed(`Configuration error: ${error.message}`);
-    } else if (error instanceof ShortioApiError) {
-      core.setFailed(`Short.io API error: ${error.message}`);
-      if (error.response) {
-        core.error(`Response: ${JSON.stringify(error.response)}`);
-      }
     } else if (error instanceof Error) {
       core.setFailed(error.message);
     } else {

@@ -23,17 +23,16 @@ The `dist/index.js` bundle is checked into the repo — run `npm run build` afte
 
 **Dataflow:** `shortio.yaml` → `parseConfig()` → `computeDiff()` → `executeSync()` → GitHub Action outputs
 
-Four core modules in `src/`:
+Three core modules in `src/`:
 
 - **`config.ts`** — Parses and validates YAML config. Supports multi-domain via YAML document streams (`---` separator). Throws `ConfigError` on invalid input.
-- **`shortio-client.ts`** — Wraps `@short.io/client-node` SDK. Handles pagination (150/page), domain ID caching. Throws `ShortioApiError` with statusCode.
-- **`sync.ts`** — Core logic. `computeDiff()` compares YAML state vs API state to produce `LinkDiff` (toCreate/toUpdate/toDelete). `executeSync()` applies the diff with dry-run support. Errors are collected without halting execution.
+- **`sync.ts`** — Core logic. Calls `@short.io/client-node` SDK directly with module-level helpers for domain ID resolution (cached) and paginated link fetching. `computeDiff()` compares YAML state vs API state to produce `LinkDiff` (toCreate/toUpdate/toDelete). `executeSync()` applies the diff with dry-run support. Errors are collected without halting execution.
 - **`types.ts`** — Shared type definitions. `MANAGED_TAG` constant. Helper functions `getLinkKey()` (domain+path composite key) and `getLinksArray()`.
 - **`index.ts`** — Entry point. Reads GitHub Action inputs via `@actions/core`, orchestrates the pipeline, sets outputs.
 
 ## Testing
 
-Tests are colocated with source files (`*.test.ts`). Each module has its own test file. External dependencies (`@short.io/client-node`, `@actions/core`) are mocked using `vi.mock()`. The `ShortioClient` is mocked at the class level in sync tests.
+Tests are colocated with source files (`*.test.ts`). Each module has its own test file. External dependencies (`@short.io/client-node`, `@actions/core`) are mocked using `vi.mock()`. SDK functions are mocked directly in sync tests.
 
 ## Key Design Decisions
 

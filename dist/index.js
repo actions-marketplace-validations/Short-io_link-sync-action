@@ -434,18 +434,18 @@ var require_tunnel = __commonJS({
             res.statusCode
           );
           socket.destroy();
-          var error3 = new Error("tunneling socket could not be established, statusCode=" + res.statusCode);
-          error3.code = "ECONNRESET";
-          options.request.emit("error", error3);
+          var error2 = new Error("tunneling socket could not be established, statusCode=" + res.statusCode);
+          error2.code = "ECONNRESET";
+          options.request.emit("error", error2);
           self.removeSocket(placeholder);
           return;
         }
         if (head.length > 0) {
           debug("got illegal response body from proxy");
           socket.destroy();
-          var error3 = new Error("got illegal response body from proxy");
-          error3.code = "ECONNRESET";
-          options.request.emit("error", error3);
+          var error2 = new Error("got illegal response body from proxy");
+          error2.code = "ECONNRESET";
+          options.request.emit("error", error2);
           self.removeSocket(placeholder);
           return;
         }
@@ -460,9 +460,9 @@ var require_tunnel = __commonJS({
           cause.message,
           cause.stack
         );
-        var error3 = new Error("tunneling socket could not be established, cause=" + cause.message);
-        error3.code = "ECONNRESET";
-        options.request.emit("error", error3);
+        var error2 = new Error("tunneling socket could not be established, cause=" + cause.message);
+        error2.code = "ECONNRESET";
+        options.request.emit("error", error2);
         self.removeSocket(placeholder);
       }
     };
@@ -5590,7 +5590,7 @@ Content-Type: ${value.type || "application/octet-stream"}\r
         throw new TypeError("Body is unusable");
       }
       const promise = createDeferredPromise();
-      const errorSteps = (error3) => promise.reject(error3);
+      const errorSteps = (error2) => promise.reject(error2);
       const successSteps = (data) => {
         try {
           promise.resolve(convertBytesToJSValue(data));
@@ -5876,16 +5876,16 @@ var require_request = __commonJS({
           this.onError(err);
         }
       }
-      onError(error3) {
+      onError(error2) {
         this.onFinally();
         if (channels.error.hasSubscribers) {
-          channels.error.publish({ request: this, error: error3 });
+          channels.error.publish({ request: this, error: error2 });
         }
         if (this.aborted) {
           return;
         }
         this.aborted = true;
-        return this[kHandler].onError(error3);
+        return this[kHandler].onError(error2);
       }
       onFinally() {
         if (this.errorHandler) {
@@ -6748,8 +6748,8 @@ var require_RedirectHandler = __commonJS({
       onUpgrade(statusCode, headers, socket) {
         this.handler.onUpgrade(statusCode, headers, socket);
       }
-      onError(error3) {
-        this.handler.onError(error3);
+      onError(error2) {
+        this.handler.onError(error2);
       }
       onHeaders(statusCode, headers, resume, statusText) {
         this.location = this.history.length >= this.maxRedirections || util.isDisturbed(this.opts.body) ? null : parseLocation(statusCode, headers);
@@ -8890,7 +8890,7 @@ var require_pool = __commonJS({
         this[kOptions] = { ...util.deepClone(options), connect, allowH2 };
         this[kOptions].interceptors = options.interceptors ? { ...options.interceptors } : void 0;
         this[kFactory] = factory;
-        this.on("connectionError", (origin2, targets, error3) => {
+        this.on("connectionError", (origin2, targets, error2) => {
           for (const target of targets) {
             const idx = this[kClients].indexOf(target);
             if (idx !== -1) {
@@ -10499,13 +10499,13 @@ var require_mock_utils = __commonJS({
       if (mockDispatch2.data.callback) {
         mockDispatch2.data = { ...mockDispatch2.data, ...mockDispatch2.data.callback(opts) };
       }
-      const { data: { statusCode, data, headers, trailers, error: error3 }, delay, persist } = mockDispatch2;
+      const { data: { statusCode, data, headers, trailers, error: error2 }, delay, persist } = mockDispatch2;
       const { timesInvoked, times } = mockDispatch2;
       mockDispatch2.consumed = !persist && timesInvoked >= times;
       mockDispatch2.pending = timesInvoked < times;
-      if (error3 !== null) {
+      if (error2 !== null) {
         deleteMockDispatch(this[kDispatches], key);
-        handler.onError(error3);
+        handler.onError(error2);
         return true;
       }
       if (typeof delay === "number" && delay > 0) {
@@ -10543,19 +10543,19 @@ var require_mock_utils = __commonJS({
         if (agent.isMockActive) {
           try {
             mockDispatch.call(this, opts, handler);
-          } catch (error3) {
-            if (error3 instanceof MockNotMatchedError) {
+          } catch (error2) {
+            if (error2 instanceof MockNotMatchedError) {
               const netConnect = agent[kGetNetConnect]();
               if (netConnect === false) {
-                throw new MockNotMatchedError(`${error3.message}: subsequent request to origin ${origin} was not allowed (net.connect disabled)`);
+                throw new MockNotMatchedError(`${error2.message}: subsequent request to origin ${origin} was not allowed (net.connect disabled)`);
               }
               if (checkNetConnect(netConnect, origin)) {
                 originalDispatch.call(this, opts, handler);
               } else {
-                throw new MockNotMatchedError(`${error3.message}: subsequent request to origin ${origin} was not allowed (net.connect is not enabled for this origin)`);
+                throw new MockNotMatchedError(`${error2.message}: subsequent request to origin ${origin} was not allowed (net.connect is not enabled for this origin)`);
               }
             } else {
-              throw error3;
+              throw error2;
             }
           }
         } else {
@@ -10718,11 +10718,11 @@ var require_mock_interceptor = __commonJS({
       /**
        * Mock an undici request with a defined error.
        */
-      replyWithError(error3) {
-        if (typeof error3 === "undefined") {
+      replyWithError(error2) {
+        if (typeof error2 === "undefined") {
           throw new InvalidArgumentError("error must be defined");
         }
-        const newMockDispatch = addMockDispatch(this[kDispatches], this[kDispatchKey], { error: error3 });
+        const newMockDispatch = addMockDispatch(this[kDispatches], this[kDispatchKey], { error: error2 });
         return new MockScope(newMockDispatch);
       }
       /**
@@ -13049,17 +13049,17 @@ var require_fetch = __commonJS({
         this.emit("terminated", reason);
       }
       // https://fetch.spec.whatwg.org/#fetch-controller-abort
-      abort(error3) {
+      abort(error2) {
         if (this.state !== "ongoing") {
           return;
         }
         this.state = "aborted";
-        if (!error3) {
-          error3 = new DOMException2("The operation was aborted.", "AbortError");
+        if (!error2) {
+          error2 = new DOMException2("The operation was aborted.", "AbortError");
         }
-        this.serializedAbortReason = error3;
-        this.connection?.destroy(error3);
-        this.emit("terminated", error3);
+        this.serializedAbortReason = error2;
+        this.connection?.destroy(error2);
+        this.emit("terminated", error2);
       }
     };
     function fetch(input, init = {}) {
@@ -13163,13 +13163,13 @@ var require_fetch = __commonJS({
         performance.markResourceTiming(timingInfo, originalURL.href, initiatorType, globalThis2, cacheState);
       }
     }
-    function abortFetch(p, request, responseObject, error3) {
-      if (!error3) {
-        error3 = new DOMException2("The operation was aborted.", "AbortError");
+    function abortFetch(p, request, responseObject, error2) {
+      if (!error2) {
+        error2 = new DOMException2("The operation was aborted.", "AbortError");
       }
-      p.reject(error3);
+      p.reject(error2);
       if (request.body != null && isReadable(request.body?.stream)) {
-        request.body.stream.cancel(error3).catch((err) => {
+        request.body.stream.cancel(error2).catch((err) => {
           if (err.code === "ERR_INVALID_STATE") {
             return;
           }
@@ -13181,7 +13181,7 @@ var require_fetch = __commonJS({
       }
       const response = responseObject[kState];
       if (response.body != null && isReadable(response.body?.stream)) {
-        response.body.stream.cancel(error3).catch((err) => {
+        response.body.stream.cancel(error2).catch((err) => {
           if (err.code === "ERR_INVALID_STATE") {
             return;
           }
@@ -13961,13 +13961,13 @@ var require_fetch = __commonJS({
               fetchParams.controller.ended = true;
               this.body.push(null);
             },
-            onError(error3) {
+            onError(error2) {
               if (this.abort) {
                 fetchParams.controller.off("terminated", this.abort);
               }
-              this.body?.destroy(error3);
-              fetchParams.controller.terminate(error3);
-              reject(error3);
+              this.body?.destroy(error2);
+              fetchParams.controller.terminate(error2);
+              reject(error2);
             },
             onUpgrade(status, headersList, socket) {
               if (status !== 101) {
@@ -14433,8 +14433,8 @@ var require_util4 = __commonJS({
                   }
                   fr[kResult] = result;
                   fireAProgressEvent("load", fr);
-                } catch (error3) {
-                  fr[kError] = error3;
+                } catch (error2) {
+                  fr[kError] = error2;
                   fireAProgressEvent("error", fr);
                 }
                 if (fr[kState] !== "loading") {
@@ -14443,13 +14443,13 @@ var require_util4 = __commonJS({
               });
               break;
             }
-          } catch (error3) {
+          } catch (error2) {
             if (fr[kAborted]) {
               return;
             }
             queueMicrotask(() => {
               fr[kState] = "done";
-              fr[kError] = error3;
+              fr[kError] = error2;
               fireAProgressEvent("error", fr);
               if (fr[kState] !== "loading") {
                 fireAProgressEvent("loadend", fr);
@@ -16449,11 +16449,11 @@ var require_connection = __commonJS({
         });
       }
     }
-    function onSocketError(error3) {
+    function onSocketError(error2) {
       const { ws } = this;
       ws[kReadyState] = states.CLOSING;
       if (channels.socketError.hasSubscribers) {
-        channels.socketError.publish(error3);
+        channels.socketError.publish(error2);
       }
       this.destroy();
     }
@@ -18157,12 +18157,12 @@ var require_oidc_utils = __commonJS({
         return __awaiter(this, void 0, void 0, function* () {
           var _a;
           const httpclient = _OidcClient.createHttpClient();
-          const res = yield httpclient.getJson(id_token_url).catch((error3) => {
+          const res = yield httpclient.getJson(id_token_url).catch((error2) => {
             throw new Error(`Failed to get ID Token. 
  
-        Error Code : ${error3.statusCode}
+        Error Code : ${error2.statusCode}
  
-        Error Message: ${error3.message}`);
+        Error Message: ${error2.message}`);
           });
           const id_token = (_a = res.result) === null || _a === void 0 ? void 0 : _a.value;
           if (!id_token) {
@@ -18183,8 +18183,8 @@ var require_oidc_utils = __commonJS({
             const id_token = yield _OidcClient.getCall(id_token_url);
             (0, core_1.setSecret)(id_token);
             return id_token;
-          } catch (error3) {
-            throw new Error(`Error message: ${error3.message}`);
+          } catch (error2) {
+            throw new Error(`Error message: ${error2.message}`);
           }
         });
       }
@@ -19367,7 +19367,7 @@ var require_toolrunner = __commonJS({
               this._debug(`STDIO streams have closed for tool '${this.toolPath}'`);
               state.CheckComplete();
             });
-            state.on("done", (error3, exitCode) => {
+            state.on("done", (error2, exitCode) => {
               if (stdbuffer.length > 0) {
                 this.emit("stdline", stdbuffer);
               }
@@ -19375,8 +19375,8 @@ var require_toolrunner = __commonJS({
                 this.emit("errline", errbuffer);
               }
               cp.removeAllListeners();
-              if (error3) {
-                reject(error3);
+              if (error2) {
+                reject(error2);
               } else {
                 resolve2(exitCode);
               }
@@ -19470,14 +19470,14 @@ var require_toolrunner = __commonJS({
         this.emit("debug", message);
       }
       _setResult() {
-        let error3;
+        let error2;
         if (this.processExited) {
           if (this.processError) {
-            error3 = new Error(`There was an error when attempting to execute the process '${this.toolPath}'. This may indicate the process failed to start. Error: ${this.processError}`);
+            error2 = new Error(`There was an error when attempting to execute the process '${this.toolPath}'. This may indicate the process failed to start. Error: ${this.processError}`);
           } else if (this.processExitCode !== 0 && !this.options.ignoreReturnCode) {
-            error3 = new Error(`The process '${this.toolPath}' failed with exit code ${this.processExitCode}`);
+            error2 = new Error(`The process '${this.toolPath}' failed with exit code ${this.processExitCode}`);
           } else if (this.processStderr && this.options.failOnStdErr) {
-            error3 = new Error(`The process '${this.toolPath}' failed because one or more lines were written to the STDERR stream`);
+            error2 = new Error(`The process '${this.toolPath}' failed because one or more lines were written to the STDERR stream`);
           }
         }
         if (this.timeout) {
@@ -19485,7 +19485,7 @@ var require_toolrunner = __commonJS({
           this.timeout = null;
         }
         this.done = true;
-        this.emit("done", error3, this.processExitCode);
+        this.emit("done", error2, this.processExitCode);
       }
       static HandleTimeout(state) {
         if (state.done) {
@@ -19831,7 +19831,7 @@ var require_core = __commonJS({
     exports2.setFailed = setFailed2;
     exports2.isDebug = isDebug;
     exports2.debug = debug;
-    exports2.error = error3;
+    exports2.error = error2;
     exports2.warning = warning;
     exports2.notice = notice;
     exports2.info = info3;
@@ -19914,7 +19914,7 @@ Support boolean input list: \`true | True | TRUE | false | False | FALSE\``);
     }
     function setFailed2(message) {
       process.exitCode = ExitCode.Failure;
-      error3(message);
+      error2(message);
     }
     function isDebug() {
       return process.env["RUNNER_DEBUG"] === "1";
@@ -19922,7 +19922,7 @@ Support boolean input list: \`true | True | TRUE | false | False | FALSE\``);
     function debug(message) {
       (0, command_1.issueCommand)("debug", {}, message);
     }
-    function error3(message, properties = {}) {
+    function error2(message, properties = {}) {
       (0, command_1.issueCommand)("error", (0, utils_1.toCommandProperties)(properties), message instanceof Error ? message.toString() : message);
     }
     function warning(message, properties = {}) {
@@ -20326,8 +20326,8 @@ var require_directives = __commonJS({
         if (prefix) {
           try {
             return prefix + decodeURIComponent(suffix);
-          } catch (error3) {
-            onError(String(error3));
+          } catch (error2) {
+            onError(String(error2));
             return null;
           }
         }
@@ -20429,9 +20429,9 @@ var require_anchors = __commonJS({
             if (typeof ref === "object" && ref.anchor && (identity.isScalar(ref.node) || identity.isCollection(ref.node))) {
               ref.node.anchor = ref.anchor;
             } else {
-              const error3 = new Error("Failed to resolve repeated object (this should not happen)");
-              error3.source = source;
-              throw error3;
+              const error2 = new Error("Failed to resolve repeated object (this should not happen)");
+              error2.source = source;
+              throw error2;
             }
           }
         },
@@ -23666,12 +23666,12 @@ var require_errors2 = __commonJS({
         super("YAMLWarning", pos, code, message);
       }
     };
-    var prettifyError = (src, lc) => (error3) => {
-      if (error3.pos[0] === -1)
+    var prettifyError = (src, lc) => (error2) => {
+      if (error2.pos[0] === -1)
         return;
-      error3.linePos = error3.pos.map((pos) => lc.linePos(pos));
-      const { line, col } = error3.linePos[0];
-      error3.message += ` at line ${line}, column ${col}`;
+      error2.linePos = error2.pos.map((pos) => lc.linePos(pos));
+      const { line, col } = error2.linePos[0];
+      error2.message += ` at line ${line}, column ${col}`;
       let ci = col - 1;
       let lineStr = src.substring(lc.lineStarts[line - 1], lc.lineStarts[line]).replace(/[\n\r]+$/, "");
       if (ci >= 60 && lineStr.length > 80) {
@@ -23689,12 +23689,12 @@ var require_errors2 = __commonJS({
       }
       if (/[^ ]/.test(lineStr)) {
         let count = 1;
-        const end = error3.linePos[1];
+        const end = error2.linePos[1];
         if (end?.line === line && end.col > col) {
           count = Math.max(1, Math.min(end.col - col, 80 - ci));
         }
         const pointer = " ".repeat(ci) + "^".repeat(count);
-        error3.message += `:
+        error2.message += `:
 
 ${lineStr}
 ${pointer}
@@ -24497,7 +24497,7 @@ var require_resolve_block_scalar = __commonJS({
       const mode = source[0];
       let indent = 0;
       let chomp = "";
-      let error3 = -1;
+      let error2 = -1;
       for (let i = 1; i < source.length; ++i) {
         const ch = source[i];
         if (!chomp && (ch === "-" || ch === "+"))
@@ -24506,12 +24506,12 @@ var require_resolve_block_scalar = __commonJS({
           const n = Number(ch);
           if (!indent && n)
             indent = n;
-          else if (error3 === -1)
-            error3 = offset + i;
+          else if (error2 === -1)
+            error2 = offset + i;
         }
       }
-      if (error3 !== -1)
-        onError(error3, "UNEXPECTED_TOKEN", `Block scalar header includes extra characters: ${source}`);
+      if (error2 !== -1)
+        onError(error2, "UNEXPECTED_TOKEN", `Block scalar header includes extra characters: ${source}`);
       let hasSpace = false;
       let comment = "";
       let length = source.length;
@@ -24805,8 +24805,8 @@ var require_compose_scalar = __commonJS({
       try {
         const res = tag.resolve(value, (msg) => onError(tagToken ?? token, "TAG_RESOLVE_FAILED", msg), ctx.options);
         scalar = identity.isScalar(res) ? res : new Scalar.Scalar(res);
-      } catch (error3) {
-        const msg = error3 instanceof Error ? error3.message : String(error3);
+      } catch (error2) {
+        const msg = error2 instanceof Error ? error2.message : String(error2);
         onError(tagToken ?? token, "TAG_RESOLVE_FAILED", msg);
         scalar = new Scalar.Scalar(value);
       }
@@ -25188,11 +25188,11 @@ ${cb}` : comment;
             break;
           case "error": {
             const msg = token.source ? `${token.message}: ${JSON.stringify(token.source)}` : token.message;
-            const error3 = new errors.YAMLParseError(getErrorPos(token), "UNEXPECTED_TOKEN", msg);
+            const error2 = new errors.YAMLParseError(getErrorPos(token), "UNEXPECTED_TOKEN", msg);
             if (this.atDirectives || !this.doc)
-              this.errors.push(error3);
+              this.errors.push(error2);
             else
-              this.doc.errors.push(error3);
+              this.doc.errors.push(error2);
             break;
           }
           case "doc-end": {
@@ -26488,8 +26488,8 @@ var require_parser = __commonJS({
       peek(n) {
         return this.stack[this.stack.length - n];
       }
-      *pop(error3) {
-        const token = error3 ?? this.stack.pop();
+      *pop(error2) {
+        const token = error2 ?? this.stack.pop();
         if (!token) {
           const message = "Tried to pop an empty stack";
           yield { type: "error", offset: this.offset, source: "", message };
@@ -27520,8 +27520,8 @@ var createSseClient = ({ onRequest, onSseError, onSseEvent, responseTransformer,
           reader.releaseLock();
         }
         break;
-      } catch (error3) {
-        onSseError?.(error3);
+      } catch (error2) {
+        onSseError?.(error2);
         if (sseMaxRetryAttempts !== void 0 && attempt >= sseMaxRetryAttempts) {
           break;
         }
@@ -28001,11 +28001,11 @@ var createClient = (config = {}) => {
     let response;
     try {
       response = await _fetch(request2);
-    } catch (error4) {
-      let finalError2 = error4;
+    } catch (error3) {
+      let finalError2 = error3;
       for (const fn of interceptors.error.fns) {
         if (fn) {
-          finalError2 = await fn(error4, void 0, request2, opts);
+          finalError2 = await fn(error3, void 0, request2, opts);
         }
       }
       finalError2 = finalError2 || {};
@@ -28091,11 +28091,11 @@ var createClient = (config = {}) => {
       jsonError = JSON.parse(textError);
     } catch {
     }
-    const error3 = jsonError ?? textError;
-    let finalError = error3;
+    const error2 = jsonError ?? textError;
+    let finalError = error2;
     for (const fn of interceptors.error.fns) {
       if (fn) {
-        finalError = await fn(error3, response, request2, opts);
+        finalError = await fn(error2, response, request2, opts);
       }
     }
     finalError = finalError || {};
@@ -28207,157 +28207,83 @@ var setApiKey = (apiKey) => {
   });
 };
 
-// src/shortio-client.ts
-var ShortioApiError = class extends Error {
-  constructor(message, statusCode, response) {
-    super(message);
-    this.statusCode = statusCode;
-    this.response = response;
-    this.name = "ShortioApiError";
-  }
-};
-var ShortioClient = class {
-  domainCache = /* @__PURE__ */ new Map();
-  constructor(apiKey) {
-    setApiKey(apiKey);
-  }
-  async getDomains() {
-    const result = await listDomains();
-    if (result.error) {
-      throw new ShortioApiError("Failed to fetch domains", void 0, result.error);
-    }
-    const domains = result.data ?? [];
-    for (const domain of domains) {
-      this.domainCache.set(domain.hostname, domain.id);
-    }
-    return domains.map((d) => ({ id: d.id, hostname: d.hostname }));
-  }
-  async getDomainId(hostname) {
-    if (this.domainCache.has(hostname)) {
-      return this.domainCache.get(hostname);
-    }
-    await this.getDomains();
-    const id = this.domainCache.get(hostname);
-    if (!id) {
-      throw new ShortioApiError(`Domain not found: ${hostname}`);
-    }
-    return id;
-  }
-  async getLinks(domain) {
-    const domainId = await this.getDomainId(domain);
-    const allLinks = [];
-    let pageToken;
-    do {
-      const result = await listLinks({
-        query: {
-          domain_id: domainId,
-          limit: 150,
-          ...pageToken ? { pageToken } : {}
-        }
-      });
-      if (result.error) {
-        throw new ShortioApiError(`Failed to fetch links for domain ${domain}`, void 0, result.error);
-      }
-      const data = result.data;
-      if (data?.links) {
-        for (const link of data.links) {
-          allLinks.push({
-            id: link.idString,
-            originalURL: link.originalURL,
-            path: link.path,
-            domain,
-            domainId,
-            title: link.title,
-            tags: link.tags,
-            cloaking: link.cloaking,
-            redirectType: link.redirectType ? Number(link.redirectType) : void 0,
-            expiresAt: link.expiresAt,
-            expiredURL: link.expiredURL,
-            password: link.password,
-            passwordContact: link.passwordContact,
-            utmSource: link.utmSource,
-            utmMedium: link.utmMedium,
-            utmCampaign: link.utmCampaign,
-            utmTerm: link.utmTerm,
-            utmContent: link.utmContent,
-            androidURL: link.androidURL,
-            iphoneURL: link.iphoneURL,
-            clicksLimit: link.clicksLimit,
-            splitURL: link.splitURL,
-            splitPercent: link.splitPercent,
-            integrationGA: link.integrationGA,
-            integrationFB: link.integrationFB,
-            integrationAdroll: link.integrationAdroll,
-            integrationGTM: link.integrationGTM,
-            folderId: link.FolderId,
-            archived: link.archived,
-            skipQS: link.skipQS
-          });
-        }
-      }
-      pageToken = data?.nextPageToken;
-    } while (pageToken);
-    return allLinks;
-  }
-  async createLink(params) {
-    const { folderId, ...rest } = params;
-    const result = await createLink({
-      body: {
-        ...rest,
-        ...folderId ? { FolderId: folderId } : {}
-      }
-    });
-    if (result.error) {
-      const errorMsg = "message" in result.error ? result.error.message : "Unknown error";
-      throw new ShortioApiError(`Failed to create link: ${errorMsg}`, void 0, result.error);
-    }
-    const data = result.data;
-    return {
-      id: data.idString,
-      originalURL: data.originalURL,
-      path: data.path,
-      domain: params.domain,
-      domainId: data.DomainId ?? 0,
-      title: data.title,
-      tags: data.tags
-    };
-  }
-  async updateLink(linkId, params) {
-    const { folderId, ...rest } = params;
-    const result = await updateLink({
-      path: { linkId },
-      body: {
-        ...rest,
-        ...folderId ? { FolderId: folderId } : {}
-      }
-    });
-    if (result.error) {
-      const errorMsg = "message" in result.error ? result.error.message : "Unknown error";
-      throw new ShortioApiError(`Failed to update link: ${errorMsg}`, void 0, result.error);
-    }
-    const data = result.data;
-    return {
-      id: data.idString,
-      originalURL: data.originalURL,
-      path: data.path,
-      domain: "",
-      domainId: data.DomainId ?? 0,
-      title: data.title,
-      tags: data.tags
-    };
-  }
-  async deleteLink(linkId) {
-    const result = await deleteLink({
-      path: { link_id: linkId }
-    });
-    if (result.error) {
-      throw new ShortioApiError(`Failed to delete link: ${linkId}`, void 0, result.error);
-    }
-  }
-};
-
 // src/sync.ts
 var core = __toESM(require_core());
+var domainCache = /* @__PURE__ */ new Map();
+async function resolveDomainId(hostname) {
+  if (domainCache.has(hostname)) {
+    return domainCache.get(hostname);
+  }
+  const result = await listDomains();
+  if (result.error) {
+    throw new Error("Failed to fetch domains");
+  }
+  const domains = result.data ?? [];
+  for (const domain of domains) {
+    domainCache.set(domain.hostname, domain.id);
+  }
+  const id = domainCache.get(hostname);
+  if (!id) {
+    throw new Error(`Domain not found: ${hostname}`);
+  }
+  return id;
+}
+async function fetchAllLinks(domain) {
+  const domainId = await resolveDomainId(domain);
+  const allLinks = [];
+  let pageToken;
+  do {
+    const result = await listLinks({
+      query: {
+        domain_id: domainId,
+        limit: 150,
+        ...pageToken ? { pageToken } : {}
+      }
+    });
+    if (result.error) {
+      throw new Error(`Failed to fetch links for domain ${domain}`);
+    }
+    const data = result.data;
+    if (data?.links) {
+      for (const link of data.links) {
+        allLinks.push({
+          id: link.idString,
+          originalURL: link.originalURL,
+          path: link.path,
+          domain,
+          domainId,
+          title: link.title,
+          tags: link.tags,
+          cloaking: link.cloaking,
+          redirectType: link.redirectType ? Number(link.redirectType) : void 0,
+          expiresAt: link.expiresAt,
+          expiredURL: link.expiredURL,
+          password: link.password,
+          passwordContact: link.passwordContact,
+          utmSource: link.utmSource,
+          utmMedium: link.utmMedium,
+          utmCampaign: link.utmCampaign,
+          utmTerm: link.utmTerm,
+          utmContent: link.utmContent,
+          androidURL: link.androidURL,
+          iphoneURL: link.iphoneURL,
+          clicksLimit: link.clicksLimit,
+          splitURL: link.splitURL,
+          splitPercent: link.splitPercent,
+          integrationGA: link.integrationGA,
+          integrationFB: link.integrationFB,
+          integrationAdroll: link.integrationAdroll,
+          integrationGTM: link.integrationGTM,
+          folderId: link.FolderId,
+          archived: link.archived,
+          skipQS: link.skipQS
+        });
+      }
+    }
+    pageToken = data?.nextPageToken;
+  } while (pageToken);
+  return allLinks;
+}
 function getLinkParams(link) {
   return {
     title: link.title,
@@ -28424,12 +28350,12 @@ function needsUpdate(yaml, existing) {
   if (yaml.skipQS !== existing.skipQS) return true;
   return false;
 }
-async function computeDiff(config, client2) {
+async function computeDiff(config) {
   const domains = getUniqueDomains(config);
   const existingLinks = [];
   for (const domain of domains) {
     core.info(`Fetching existing links for domain: ${domain}`);
-    const links = await client2.getLinks(domain);
+    const links = await fetchAllLinks(domain);
     existingLinks.push(...links);
     core.info(`Found ${links.length} existing links for ${domain}`);
   }
@@ -28463,7 +28389,7 @@ async function computeDiff(config, client2) {
   }
   return { toCreate, toUpdate, toDelete };
 }
-async function executeSync(diff, client2, dryRun) {
+async function executeSync(diff, dryRun) {
   const result = {
     created: 0,
     updated: 0,
@@ -28481,17 +28407,25 @@ async function executeSync(diff, client2, dryRun) {
         try {
           const params = getLinkParams(link);
           const tags = params.tags ? [...params.tags, MANAGED_TAG] : [MANAGED_TAG];
-          await client2.createLink({
-            ...params,
-            originalURL: link.url,
-            domain: link.domain,
-            path: link.slug,
-            tags
+          const { folderId, ...restParams } = params;
+          const createResult = await createLink({
+            body: {
+              ...restParams,
+              originalURL: link.url,
+              domain: link.domain,
+              path: link.slug,
+              tags,
+              ...folderId ? { FolderId: folderId } : {}
+            }
           });
+          if (createResult.error) {
+            const errorMsg = "message" in createResult.error ? createResult.error.message : "Unknown error";
+            throw new Error(`Failed to create link: ${errorMsg}`);
+          }
           core.info(`Created: ${key}`);
           result.created++;
-        } catch (error3) {
-          const msg = `Failed to create ${key}: ${error3 instanceof Error ? error3.message : error3}`;
+        } catch (error2) {
+          const msg = `Failed to create ${key}: ${error2 instanceof Error ? error2.message : error2}`;
           core.error(msg);
           result.errors.push(msg);
         }
@@ -28519,15 +28453,24 @@ async function executeSync(diff, client2, dryRun) {
           const params = getLinkParams(yaml);
           const baseTags = params.tags ?? [];
           const tags = baseTags.includes(MANAGED_TAG) ? baseTags : [...baseTags, MANAGED_TAG];
-          await client2.updateLink(existing.id, {
-            ...params,
-            originalURL: yaml.url,
-            tags
+          const { folderId, ...restParams } = params;
+          const updateResult = await updateLink({
+            path: { linkId: existing.id },
+            body: {
+              ...restParams,
+              originalURL: yaml.url,
+              tags,
+              ...folderId ? { FolderId: folderId } : {}
+            }
           });
+          if (updateResult.error) {
+            const errorMsg = "message" in updateResult.error ? updateResult.error.message : "Unknown error";
+            throw new Error(`Failed to update link: ${errorMsg}`);
+          }
           core.info(`Updated: ${key}`);
           result.updated++;
-        } catch (error3) {
-          const msg = `Failed to update ${key}: ${error3 instanceof Error ? error3.message : error3}`;
+        } catch (error2) {
+          const msg = `Failed to update ${key}: ${error2 instanceof Error ? error2.message : error2}`;
           core.error(msg);
           result.errors.push(msg);
         }
@@ -28543,11 +28486,16 @@ async function executeSync(diff, client2, dryRun) {
         result.deleted++;
       } else {
         try {
-          await client2.deleteLink(link.id);
+          const deleteResult = await deleteLink({
+            path: { link_id: link.id }
+          });
+          if (deleteResult.error) {
+            throw new Error(`Failed to delete link: ${link.id}`);
+          }
           core.info(`Deleted: ${key}`);
           result.deleted++;
-        } catch (error3) {
-          const msg = `Failed to delete ${key}: ${error3 instanceof Error ? error3.message : error3}`;
+        } catch (error2) {
+          const msg = `Failed to delete ${key}: ${error2 instanceof Error ? error2.message : error2}`;
           core.error(msg);
           result.errors.push(msg);
         }
@@ -28584,9 +28532,9 @@ async function run() {
     const config = parseConfig(resolvedPath);
     const links = getLinksArray(config);
     core2.info(`Found ${links.length} links across ${config.documents.length} document(s)`);
-    const client2 = new ShortioClient(apiKey);
+    setApiKey(apiKey);
     core2.info("Computing diff between config and Short.io...");
-    const diff = await computeDiff(config, client2);
+    const diff = await computeDiff(config);
     core2.info(`Changes to make:`);
     core2.info(`  To create: ${diff.toCreate.length}`);
     core2.info(`  To update: ${diff.toUpdate.length}`);
@@ -28599,7 +28547,7 @@ async function run() {
       core2.setOutput("summary", "No changes needed");
       return;
     }
-    const result = await executeSync(diff, client2, dryRun);
+    const result = await executeSync(diff, dryRun);
     core2.setOutput("created", result.created);
     core2.setOutput("updated", result.updated);
     core2.setOutput("deleted", result.deleted);
@@ -28609,16 +28557,11 @@ async function run() {
     if (result.errors.length > 0) {
       core2.setFailed(`Sync completed with ${result.errors.length} errors`);
     }
-  } catch (error3) {
-    if (error3 instanceof ConfigError) {
-      core2.setFailed(`Configuration error: ${error3.message}`);
-    } else if (error3 instanceof ShortioApiError) {
-      core2.setFailed(`Short.io API error: ${error3.message}`);
-      if (error3.response) {
-        core2.error(`Response: ${JSON.stringify(error3.response)}`);
-      }
-    } else if (error3 instanceof Error) {
-      core2.setFailed(error3.message);
+  } catch (error2) {
+    if (error2 instanceof ConfigError) {
+      core2.setFailed(`Configuration error: ${error2.message}`);
+    } else if (error2 instanceof Error) {
+      core2.setFailed(error2.message);
     } else {
       core2.setFailed("An unexpected error occurred");
     }
