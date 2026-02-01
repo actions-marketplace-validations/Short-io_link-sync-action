@@ -1,7 +1,7 @@
 import * as core from '@actions/core';
 import * as path from 'path';
 import { parseConfig, ConfigError } from './config.js';
-import { setApiKey } from '@short.io/client-node';
+import { setApiKey, enableRateLimiting } from '@short.io/client-node';
 import { computeDiff, executeSync, formatSummary } from './sync.js';
 import { getLinksArray } from './types.js';
 
@@ -23,6 +23,12 @@ async function run(): Promise<void> {
     core.info(`Found ${links.length} links across ${config.documents.length} document(s)`);
 
     setApiKey(apiKey);
+    enableRateLimiting({
+      maxRetries: 3,
+      onRateLimited: (info) => {
+        core.warning(`Rate limited. Retry ${info.attempt} in ${info.delayMs}ms`);
+      },
+    });
 
     core.info('Computing diff between config and Short.io...');
     const diff = await computeDiff(config);

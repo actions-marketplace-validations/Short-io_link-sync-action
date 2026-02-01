@@ -19,7 +19,7 @@
   "license": "MIT",
   "dependencies": {
     "@actions/core": "^2.0.2",
-    "@short.io/client-node": "^3.0.4",
+    "@short.io/client-node": "^3.2.0",
     "yaml": "^2.8.2"
   },
   "devDependencies": {
